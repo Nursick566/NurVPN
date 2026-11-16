@@ -11,24 +11,37 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract ZIP
+      - name: Extract ZIP and find project root
         run: |
-          # Ищем любой ZIP-файл в корне репозитория
+          # Ищем любой ZIP-файл
           ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
-            echo "ОШИБКА: ZIP-файл не найден в репозитории!"
+            echo "ОШИБКА: ZIP-файл не найден!"
             exit 1
           fi
           
           echo "Найден архив: $ZIP_FILE"
           unzip -q "$ZIP_FILE" -d extracted_files
           
-          # Переносим всё из архива в корень
-          cp -r extracted_files/* . || true
+          # Ищем файл settings.gradle, чтобы понять, где находится корень проекта
+          SETTINGS_FILE=$(find extracted_files -name "settings.gradle*" -print -quit)
+          
+          if [ -n "$SETTINGS_FILE" ]; then
+            PROJECT_ROOT=$(dirname "$SETTINGS_FILE")
+            echo "Корень проекта найден в папке: $PROJECT_ROOT"
+            # Копируем всё содержимое из этой папки в корень репозитория
+            cp -r "$PROJECT_ROOT"/* . || true
+            # Копируем скрытые файлы (например, .gitignore), если они есть
+            cp -r "$PROJECT_ROOT"/.[!.]* . || true
+          else
+            echo "Файл settings.gradle не найден, копируем всё подряд"
+            cp -r extracted_files/* . || true
+          fi
+          
           rm -rf extracted_files
           rm "$ZIP_FILE"
           
-          echo "Проверка содержимого папки:"
+          echo "Итоговое содержимое корневой папки:"
           ls -la
 
       - name: Set up JDK 17
@@ -45,7 +58,7 @@ jobs:
       - name: Generate Gradle Wrapper (if missing)
         run: |
           if [ ! -f "gradlew" ]; then
-            echo "Файл gradlew отсутствует. Генерируем..."
+            echo "Файл gradlew отсутствует. Генерируем в корне проекта..."
             gradle wrapper
           fi
           chmod +x gradlew
