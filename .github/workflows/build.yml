@@ -30,7 +30,6 @@ jobs:
             cp -r "$PROJECT_ROOT"/* . || true
             cp -r "$PROJECT_ROOT"/.[!.]* . || true
           else
-            echo "Файл settings.gradle не найден, копируем всё подряд"
             cp -r extracted_files/* . || true
           fi
           
@@ -43,13 +42,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle (Latest)
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.9' # Обновили до новой версии, совместимой с кодом ChatGPT
+          gradle-version: '9.5.0' # <--- ИЗМЕНЕНИЕ ЗДЕСЬ
 
-      # Шаг с генерацией gradlew мы убрали. Будем использовать системный Gradle.
-      
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
