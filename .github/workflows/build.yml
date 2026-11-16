@@ -1,0 +1,39 @@
+name: Build APK
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Unzip Project
+        run: |
+          unzip NurVPN_Prepared_For_APK.zip -d temp
+          mv temp/* .
+          if [ -d "temp/nurvpn" ]; then mv temp/nurvpn/* .; fi
+          if [ -d "temp/NurVPN" ]; then mv temp/NurVPN/* .; fi
+          
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          
+      # Используем v4 и явно принимаем лицензии
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nurvpn-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
